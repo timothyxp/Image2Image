@@ -1,6 +1,19 @@
 from tqdm.autonotebook import tqdm
 import torch
 from i2i.logger.wandb import WanDBWriter
+from i2i.datasets.collator import I2IBatch
+from collections import defaultdict
+import numpy as np
+
+
+def log_images(batch: I2IBatch, logger: WanDBWriter):
+    logger.add_image("sketch", batch.sketch_images[0].detach().cpu().numpy())
+
+    if batch.target_images is not None:
+        logger.add_image("ground_true", batch.target_images[0].detach().cpu().numpy())
+
+    if batch.predicted_image is not None:
+        logger.add_image("prediction", batch.predicted_image[0].detach().cpu().numpy())
 
 
 def train_epoch(model, optimizer, loader, loss_fn, config, scheduler=None, logger: WanDBWriter = None):
@@ -26,6 +39,9 @@ def train_epoch(model, optimizer, loader, loss_fn, config, scheduler=None, logge
 
             logger.add_scalar("l2_loss", l2_loss)
 
+        if i % config['log_train_step'] == 0 and logger is not None:
+            log_images(batch, logger)
+
         if i % config.get('grad_accum_steps', 1) == 0:
             optimizer.step()
 
@@ -36,20 +52,25 @@ def train_epoch(model, optimizer, loader, loss_fn, config, scheduler=None, logge
             scheduler.step()
 
 
-@torch.no_grad()
-def evaluate(model, loader, config, vocoder, logger: WanDBWriter):
+@torch.inference_mode()
+def evaluate(model, loader, config, loss_fn, logger: WanDBWriter = None):
     model.eval()
+    metrics = defaultdict(list)
 
-    for batch in tqdm(iter(loader)):
+    for i, batch in enumerate(tqdm(iter(loader))):
         batch = batch.to(config['device'])
 
         batch = model(batch)
 
-        for i in range(batch.melspec_prediction.shape[0]):
-            logger.set_step(logger.step + 1, "val")
+        loss = loss_fn(batch)
 
-            reconstructed_wav = vocoder.inference(batch.melspec_prediction[i:i + 1].transpose(-1, -2)).cpu()
+        metrics['loss'].append(loss.detach().cpu().numpy())
 
-            logger.add_text("text", batch.transcript[i])
-            logger.add_audio("audio", reconstructed_wav, sample_rate=22050)
+        if i % config['log_val_step'] == 0 and logger is not None:
+            log_images(batch, logger)
 
+    if logger is not None:
+        for metric_name, metric_val in metrics.items():
+            logger.add_scalar(metric_name, np.mean(metric_val))
+
+    return metrics

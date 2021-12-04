@@ -6,7 +6,7 @@ from i2i.datasets.collator import I2IBatch
 class UNet(nn.Module):
     def __init__(
         self, feature_levels_num, input_ch_size, hidden_ch_size, output_ch_size, block_depth,
-        kernel_size=3, *args, **kwargs
+        kernel_size=3, max_ch_num=1e9, *args, **kwargs
     ):
         """
         Input:
@@ -25,9 +25,12 @@ class UNet(nn.Module):
 
         cur_ch_num = hidden_ch_size
         for _ in range(feature_levels_num):
-            self.down_blocks.append(DownBlock(cur_ch_num, cur_ch_num * 2, kernel_size, block_depth))
-            self.up_blocks.append(UpBlock(cur_ch_num * 2, cur_ch_num, kernel_size, block_depth))
+            output_ch_num = min(cur_ch_num * 2, max_ch_num)
+
+            self.down_blocks.append(DownBlock(cur_ch_num, output_ch_num, kernel_size, block_depth))
+            self.up_blocks.append(UpBlock(output_ch_num, cur_ch_num, kernel_size, block_depth))
             cur_ch_num *= 2
+            cur_ch_num = min(cur_ch_num, max_ch_num)
 
         self.center_conv = ConvBlock(cur_ch_num, cur_ch_num, kernel_size, block_depth)
 
@@ -36,15 +39,12 @@ class UNet(nn.Module):
         self.output_block = ConvBlock(hidden_ch_size, output_ch_size, 1, block_depth)
 
     def forward(self, batch: I2IBatch):
-        # print(x.shape)
         x = self.input_block(batch.sketch_images)
-        # print(x.shape)
 
         outputs = []
         for i in range(self.feature_levels_num):
             mem, x = self.down_blocks[i](x)
 
-            # print(x.shape, "down")
             outputs.append(mem)
 
         x = self.center_conv(x)
@@ -52,9 +52,7 @@ class UNet(nn.Module):
         outputs = outputs[::-1]
 
         for i in range(self.feature_levels_num):
-            # print(outputs[i].shape, x.shape)
             x = self.up_blocks[i](outputs[i], x)
-            # print(x.shape, "up")
 
         batch.predicted_image = self.output_block(x)
 
