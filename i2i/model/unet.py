@@ -6,7 +6,7 @@ from i2i.datasets.collator import I2IBatch
 class UNet(nn.Module):
     def __init__(
         self, feature_levels_num, input_ch_size, hidden_ch_size, output_ch_size, block_depth,
-        kernel_size=3, max_ch_num=1e9, *args, **kwargs
+        kernel_size=3, max_ch_num=1e9, dropout_p=0, *args, **kwargs
     ):
         """
         Input:
@@ -22,13 +22,14 @@ class UNet(nn.Module):
         self.down_blocks = []
         self.up_blocks = []
         self.feature_levels_num = feature_levels_num
+        self.dropout_p = dropout_p
 
         cur_ch_num = hidden_ch_size
         for _ in range(feature_levels_num):
             output_ch_num = min(cur_ch_num * 2, max_ch_num)
 
-            self.down_blocks.append(DownBlock(cur_ch_num, output_ch_num, kernel_size, block_depth))
-            self.up_blocks.append(UpBlock(output_ch_num, cur_ch_num, kernel_size, block_depth))
+            self.down_blocks.append(DownBlock(cur_ch_num, output_ch_num, kernel_size, block_depth, self.dropout_p))
+            self.up_blocks.append(UpBlock(output_ch_num, cur_ch_num, kernel_size, block_depth, self.dropout_p))
             cur_ch_num *= 2
             cur_ch_num = min(cur_ch_num, max_ch_num)
 
