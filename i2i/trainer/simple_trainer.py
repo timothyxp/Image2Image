@@ -55,7 +55,7 @@ def train_epoch(model, optimizer, loader, loss_fn, config, scheduler=None, logge
 
 def gan_train_epoch(
         G, D, optimizer_G, optimizer_D, loader, loss_fn,
-        config, scheduler=None, logger: WanDBWriter = None
+        config, scheduler_G=None, scheduler_D=None, logger: WanDBWriter = None
 ):
     G.train()
     D.train()
@@ -110,8 +110,11 @@ def gan_train_epoch(
         if i > config.get('len_epoch', 1e9):
             break
 
-        if scheduler is not None:
-            scheduler.step()
+        if scheduler_G is not None:
+            scheduler_G.step()
+
+        if scheduler_D is not None:
+            scheduler_D.step()
 
 
 @torch.inference_mode()
