@@ -8,13 +8,13 @@ import numpy as np
 
 
 def log_images(batch: I2IBatch, logger: WanDBWriter):
-    logger.add_image("sketch", batch.sketch_images[0].detach().cpu().numpy())
+    logger.add_image("sketch", batch.sketch_images[0].detach().cpu().permute(1, 2, 0).numpy())
 
     if batch.target_images is not None:
-        logger.add_image("ground_true", batch.target_images[0].detach().cpu().numpy())
+        logger.add_image("ground_true", batch.target_images[0].detach().cpu().permute(1, 2, 0).numpy())
 
     if batch.predicted_image is not None:
-        logger.add_image("prediction", batch.predicted_image[0].detach().cpu().numpy())
+        logger.add_image("prediction", batch.predicted_image[0].detach().cpu().permute(1, 2, 0).numpy())
 
 
 def train_epoch(model, optimizer, loader, loss_fn, config, scheduler=None, logger: WanDBWriter = None):
@@ -120,6 +120,9 @@ def evaluate(model, loader, config, loss_fn, logger: WanDBWriter = None):
     metrics = defaultdict(list)
 
     for i, batch in enumerate(tqdm(iter(loader))):
+        if logger is not None:
+            logger.set_step(logger.step + 1, mode='train')
+
         batch = batch.to(config['device'])
 
         batch = model(batch)
