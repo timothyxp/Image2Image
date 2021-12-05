@@ -51,10 +51,9 @@ class DownBlock(nn.Module):
 
     def forward(self, x):
         mem = self.conv_block(x)
-        # print(mem.shape, "downBlock")
 
         x = self.pool(mem)
-        # print(x.shape, "downBlock")
+
         return mem, x
 
 
