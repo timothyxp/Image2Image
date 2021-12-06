@@ -33,14 +33,15 @@ class Discriminator(nn.Module):
 
         self.net = nn.Sequential(*layers)
 
-    def forward(self, batch: I2IBatch, true: bool):
+    def forward(self, batch: I2IBatch, true: bool, detach: bool = False):
         x = torch.cat((
             batch.sketch_images,
             batch.target_images if true else batch.predicted_image
         ), dim=1)
+        
+        if detach:
+            x = x.detach()
 
-        print(x.shape)
-        output = self.net(x)
-        print(output.shape)
+        output = self.net(x).mean(dim=-1).mean(dim=-1)
 
         return output

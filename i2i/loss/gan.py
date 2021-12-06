@@ -15,9 +15,9 @@ class GANLoss(nn.Module):
     @staticmethod
     def get_gan_target(tensor, true_target):
         if true_target:
-            return torch.ones(*tensor.shape)
+            return torch.ones(*tensor.shape, device=tensor.device)
 
-        return torch.zeros(*tensor.shape)
+        return torch.zeros(*tensor.shape, device=tensor.device)
 
     def forward(self, batch: I2IBatch, G, D, generator_step) -> Tuple[Tensor, Tensor]:
         if generator_step:
@@ -30,7 +30,7 @@ class GANLoss(nn.Module):
             return loss_gan, reconstruction
 
         else:
-            fake = D(batch, False)
+            fake = D(batch, False, detach=True)
 
             fake_loss = self.gan_loss(fake, self.get_gan_target(fake, False))
 

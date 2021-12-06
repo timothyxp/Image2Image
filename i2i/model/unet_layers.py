@@ -47,7 +47,7 @@ class DownBlock(nn.Module):
         super().__init__()
 
         self.conv_block = ConvBlock(input_ch, output_ch, kernel_size, block_depth, dropout_p)
-        self.pool = nn.MaxPool2d(2)
+        self.pool = nn.AvgPool2d(2)
 
     def forward(self, x):
         mem = self.conv_block(x)
