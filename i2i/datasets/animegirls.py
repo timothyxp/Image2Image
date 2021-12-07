@@ -7,7 +7,7 @@ from torchvision import transforms
 
 class AnimeGirls(Dataset):
     def __init__(self, dir_name: str, split='train'):
-        self.dir_name = dir_name
+        self.dir_name = os.path.join(dir_name, split)
         self.split = split
 
         self.files = os.listdir(os.path.join(self.dir_name, split))
