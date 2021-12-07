@@ -10,7 +10,7 @@ class AnimeGirls(Dataset):
         self.dir_name = os.path.join(dir_name, split)
         self.split = split
 
-        self.files = os.listdir(os.path.join(self.dir_name, split))
+        self.files = os.listdir(self.dir_name)
 
         self.transforms = transforms.ToTensor()
 
