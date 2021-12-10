@@ -2,14 +2,16 @@ from torch.utils.data import Dataset
 import pandas as  pd
 import os
 from PIL import Image
-
 from torchvision import transforms
 
 
 class FacadesDataset(Dataset):
-    def __init__(self, dir_name: str, split='train'):
+    def __init__(self, dir_name: str, split='train', img_transforms=None):
         self.dir_name = dir_name
         self.split = split
+        self.transforms = img_transforms
+        if self.transforms is None:
+            self.transforms = transforms.ToTensor()
 
         meta = pd.read_csv(os.path.join(self.dir_name, 'metadata.csv'))
         meta = meta[meta.split == split]
@@ -21,8 +23,6 @@ class FacadesDataset(Dataset):
             .sort_values(by=['domain']) \
             .groupby("image_id") \
             .agg({'image_path': tuple})
-
-        self.transforms = transforms.ToTensor()
 
     def __len__(self):
         return self.meta.shape[0]

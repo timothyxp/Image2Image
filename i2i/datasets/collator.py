@@ -13,6 +13,9 @@ class I2IBatch:
         self.target_images = self.target_images.to(device, non_blocking=non_blocking)
         self.sketch_images = self.sketch_images.to(device, non_blocking=non_blocking)
 
+        if self.predicted_image is not None:
+            self.predicted_image = self.predicted_image.to(device, non_blocking=non_blocking)
+
         return self
 
     def pin_memory(self):
