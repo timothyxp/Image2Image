@@ -161,9 +161,10 @@ def gan_train_epoch(
 
 
 @torch.inference_mode()
-def evaluate(model, loader, config, loss_fn, logger: WanDBWriter = None):
+def evaluate(model, loader, config, loss_fn, metric_calculators=(), logger: WanDBWriter = None):
     model.eval()
     metrics = defaultdict(list)
+    batches = []
 
     for i, batch in enumerate(tqdm(iter(loader))):
         if logger is not None:
@@ -175,10 +176,15 @@ def evaluate(model, loader, config, loss_fn, logger: WanDBWriter = None):
 
         loss = loss_fn(batch)
 
+        batches.append(batch.to('cpu'))
+
         metrics['loss'].append(loss.detach().cpu().numpy())
 
         if logger is not None and logger.step % config['log_val_step'] == 0:
             log_images(batch, logger)
+
+    for calc in metric_calculators:
+        metrics.update(calc.calculate(batches))
 
     if logger is not None:
         for metric_name, metric_val in metrics.items():
